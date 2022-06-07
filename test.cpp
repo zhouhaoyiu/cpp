@@ -1,4 +1,5 @@
 #include <iostream>
+#include "test.h"
 
 using namespace std;
 
@@ -31,6 +32,7 @@ void Box::print(double hei) {
 }
 
 int main() {
+    changeConsole();
     Box Box1{};        // 声明 Box1，类型为 Box
     Box Box2{};        // 声明 Box2，类型为 Box
     Box Box3{};        // 声明 Box3，类型为 Box
