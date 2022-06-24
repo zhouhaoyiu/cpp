@@ -58,7 +58,14 @@ void Parser::printAST() {
 }
 
 void Parser::printASTHelper(Parser::ASTNode *node, int depth) {
-
+    // Print indentation.
+    for (int i = 0; i < depth; i++) cout << "  ";
+    // Print node.
+    cout << node->toString() << endl;
+    // Print children.
+    for (auto child : node->children) {
+        printASTHelper(child, depth + 1);
+    }
 }
 
 void Parser::setDebugMode(bool enable) {
