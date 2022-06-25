@@ -49,6 +49,28 @@ void Lexer::initKeywordsAndSymbols() {
     keywords.insert("break");
     keywords.insert("continue");
     keywords.insert("class");
+    keywords.insert("extends");
+    keywords.insert("new");
+    keywords.insert("super");
+    keywords.insert("switch");
+    keywords.insert("case");
+    keywords.insert("default");
+    keywords.insert("throw");
+    keywords.insert("try");
+    keywords.insert("catch");
+    keywords.insert("finally");
+    keywords.insert("typeof");
+    keywords.insert("void");
+    keywords.insert("delete");
+    keywords.insert("instanceof");
+    keywords.insert("in");
+    keywords.insert("of");
+    keywords.insert("as");
+    keywords.insert("import");
+    keywords.insert("export");
+    keywords.insert("from");
+    keywords.insert("static");
+    keywords.insert("readonly");
 
     symbols.insert("{");
     symbols.insert("}");
@@ -76,6 +98,25 @@ void Lexer::initKeywordsAndSymbols() {
     symbols.insert("!=");
     symbols.insert("&&");
     symbols.insert("||");
+    symbols.insert("?");
+    symbols.insert(":");
+    symbols.insert("~");
+    symbols.insert("^");
+    symbols.insert("<<");
+    symbols.insert(">>");
+    symbols.insert(">>>");
+    symbols.insert("+=");
+    symbols.insert("-=");
+    symbols.insert("*=");
+    symbols.insert("/=");
+    symbols.insert("%=");
+    symbols.insert("&=");
+    symbols.insert("|=");
+    symbols.insert("^=");
+    symbols.insert("<<=");
+    symbols.insert(">>=");
+    symbols.insert(">>>=");
+    symbols.insert("=");
 }
 
 void Lexer::resetRow() {

@@ -93,7 +93,6 @@ Parser::ASTNode *Parser::parseStatementList() {
         restoreToken();
         current->next = parseStatement();
         current = current->next;
-        token = getToken();
     }
     restoreToken();
     return node;
