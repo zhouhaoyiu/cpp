@@ -89,7 +89,8 @@ Parser::ASTNode *Parser::parseStatementList() {
            token.value == "let" || token.value == "function" ||
            token.type == Lexer::ID || token.value == "if" ||
            token.value == "while" || token.value == "return" ||
-           token.value == "for") {
+           token.value == "for" || token.value == "break" ||
+           token.value == "continue" || token.value == ";") {
         restoreToken();
         current->next = parseStatement();
         current = current->next;
