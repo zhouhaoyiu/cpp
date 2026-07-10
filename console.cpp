@@ -13,4 +13,5 @@ int changeConsole() {
 
     GetConsoleTitleA(buf, 0xFF);//获取新标题
     cout << buf << endl;
+    return 0;
 }
