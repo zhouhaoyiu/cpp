@@ -21,9 +21,9 @@ public:
         END_OF_LINE // Used in interactive mode
     };
     struct Token {
-        TokenType type; // Token's type.
+        TokenType type = NONE; // Token's type.
         std::string value; // Token's value.
-        unsigned rowNumber; // The row where the token is located.
+        unsigned rowNumber = 0; // The row where the token is located.
     };
 
 private:
@@ -33,7 +33,10 @@ private:
     std::ifstream file; // File input stream object.
     std::string input;
 
-    char nextChar(); // Get next char.
+    bool inputMode = false;
+    bool canRollBack = false;
+
+    int nextChar(); // Get next char.
     void rollBack(); // Roll back line buffer (rowBufferPos--).
     void initKeywordsAndSymbols();
 
@@ -56,7 +59,7 @@ public:
     void resetRow(); // Reset rowNumber to 0.
     void print(const Token &token); // Print token.
     std::string tokenToString(const Token &token); // Convert token to string.
-    void error(const std::string &message, char currentChar);
+    void error(const std::string &message, int currentChar);
 
     void setDebugMode(bool enable);
 };

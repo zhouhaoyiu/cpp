@@ -1,5 +1,6 @@
 #include "Interpreter.h"
 #include <iostream>
+#include <exception>
 #include <cassert>
 #include <iomanip>
 #include <ctime>
@@ -26,7 +27,7 @@ void Interpreter::shell() {
         cout << "> ";
         string input;
         string line;
-        getline(cin, line);
+        if (!getline(cin, line)) break;
         if (!line.empty() && line[line.size() - 1] == '{') {
             do {
                 cout << "... ";
@@ -36,7 +37,11 @@ void Interpreter::shell() {
         }
         input += line;
         if (input.empty()) continue;
-        if (!shellExecute(input)) break;
+        try {
+            if (!shellExecute(input)) break;
+        } catch (const std::exception &error) {
+            cerr << error.what() << endl;
+        }
     }
 }
 

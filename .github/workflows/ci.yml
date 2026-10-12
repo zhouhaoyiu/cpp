@@ -16,3 +16,34 @@ jobs:
       - uses: actions/checkout@v7
       - run: cmake -S . -B build-ci
       - run: cmake --build build-ci --config Release
+
+  interpreter:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: cmake -S js-interpreter -B build-interpreter
+      - run: cmake --build build-interpreter --config Debug
+      - run: ctest --test-dir build-interpreter -C Debug --output-on-failure
+
+  interpreter-sanitizers:
+    runs-on: ubuntu-latest
+    env:
+      # AST/interpreter ownership predates these regressions; this job checks
+      # memory access and undefined behavior, not leak accounting.
+      ASAN_OPTIONS: detect_leaks=0
+      UBSAN_OPTIONS: halt_on_error=1
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - run: cmake -S js-interpreter -B build-sanitizers -DENABLE_SANITIZERS=ON -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=clang++
+      - run: cmake --build build-sanitizers --parallel
+      - run: ctest --test-dir build-sanitizers --output-on-failure

@@ -3,6 +3,7 @@
 #include <string>
 #include <cassert>
 #include <utility>
+#include <stdexcept>
 
 using namespace std;
 
@@ -11,13 +12,18 @@ Parser::Parser() {
 }
 
 void Parser::parseFile(std::string &filename) {
+    leftTokenBuffer.clear();
+    rightTokenBuffer.clear();
     lexer.openFile(filename);
     parseProgram();
 }
 
 Parser::ASTNode *Parser::parseInput(string input) {
+    leftTokenBuffer.clear();
+    rightTokenBuffer.clear();
     lexer.tokenizeInput(std::move(input));
-    return parseStatement();
+    parseProgram();
+    return root;
 }
 
 // Load next token.
@@ -44,8 +50,7 @@ void Parser::restoreToken() {
 }
 
 void Parser::error(const string &message, const Lexer::Token &token) {
-    cerr << "[Parser] [Error]: " << message << " | [Token]: " << lexer.tokenToString(token) << endl;
-    if (debug) exit(-1);
+    throw runtime_error("[Parser] " + message + " | [Token]: " + lexer.tokenToString(token));
 }
 
 void Parser::log(const string &message, const Lexer::Token &token) {
@@ -58,13 +63,12 @@ void Parser::printAST() {
 }
 
 void Parser::printASTHelper(Parser::ASTNode *node, int depth) {
-    // Print indentation.
-    for (int i = 0; i < depth; i++) cout << "  ";
-    // Print node.
-    cout << node->toString() << endl;
-    // Print children.
-    for (auto child : node->children) {
-        printASTHelper(child, depth + 1);
+    for (; node != nullptr; node = node->next) {
+        for (int i = 0; i < depth; ++i) cout << "  ";
+        cout << "Node(type=" << node->type << ", token=" << node->token.value << ")" << endl;
+        for (auto child : node->child) {
+            if (child != nullptr) printASTHelper(child, depth + 1);
+        }
     }
 }
 
@@ -82,21 +86,22 @@ void Parser::parseProgram() {
 }
 
 Parser::ASTNode *Parser::parseStatementList() {
-    ASTNode *node = parseStatement();
-    ASTNode *current = node;
-    Lexer::Token token = getToken();
-    while (token.value == "var" || token.value == "const" ||
-           token.value == "let" || token.value == "function" ||
-           token.type == Lexer::ID || token.value == "if" ||
-           token.value == "while" || token.value == "return" ||
-           token.value == "for" || token.value == "break" ||
-           token.value == "continue" || token.value == ";") {
+    ASTNode *head = nullptr;
+    ASTNode *tail = nullptr;
+    while (true) {
+        const auto token = getToken();
+        if (token.type == Lexer::END_OF_FILE || token.type == Lexer::END_OF_LINE || token.value == "}") {
+            restoreToken();
+            return head;
+        }
+        if (token.value == ";") continue;
         restoreToken();
-        current->next = parseStatement();
-        current = current->next;
+        ASTNode *statement = parseStatement();
+        if (!statement) error("expected a statement", token);
+        if (tail) tail->next = statement;
+        else head = statement;
+        tail = statement;
     }
-    restoreToken();
-    return node;
 }
 
 Parser::ASTNode *Parser::parseStatement() {

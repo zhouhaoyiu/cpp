@@ -2,6 +2,9 @@
 #include <iostream>
 #include <string>
 #include <utility>
+#include <stdexcept>
+#include <sstream>
+#include <cctype>
 
 using namespace std;
 
@@ -12,6 +15,8 @@ Lexer::Lexer() {
 }
 
 void Lexer::tokenizeInput(string i) {
+    inputMode = true;
+    canRollBack = false;
     input = std::move(i);
     rowNumber++;
     rowBuffer = input;
@@ -20,10 +25,14 @@ void Lexer::tokenizeInput(string i) {
 }
 
 void Lexer::openFile(const string &filename) {
+    closeFile();
+    file.clear();
+    rowBuffer.clear();
+    rowBufferPos = rowNumber = 0;
+    inputMode = canRollBack = false;
     file.open(filename);
     if (file.fail()) {
-        cerr << "file " << filename << " cannot not be open." << endl;
-        exit(-1);
+        throw runtime_error("cannot open file: " + filename);
     }
 }
 
@@ -131,32 +140,26 @@ bool Lexer::isSymbol(const string &str) {
     return symbols.find(str) != symbols.end();
 }
 
-char Lexer::nextChar() {
+int Lexer::nextChar() {
+    canRollBack = false;
     if (rowBufferPos >= rowBuffer.size()) {
-        rowNumber++;
-        if (input.empty()) { // Tokenize file.
-            getline(file, rowBuffer);
-            rowBuffer += '\n';
-            if (!file.fail()) {
-                rowBufferPos = 0;
-                return rowBuffer[rowBufferPos++];
-            } else {
-                return EOF;
-            }
-        } else { // Tokenize input string.
-            return '\0'; // Means end of line.
-        }
-    } else {
-        return rowBuffer[rowBufferPos++];
+        if (inputMode) return '\0';
+        if (!getline(file, rowBuffer)) return EOF;
+        ++rowNumber;
+        rowBuffer += '\n';
+        rowBufferPos = 0;
     }
+    canRollBack = true;
+    return static_cast<unsigned char>(rowBuffer[rowBufferPos++]);
 }
 
 void Lexer::rollBack() {
-    rowBufferPos--;
+    if (canRollBack && rowBufferPos > 0) --rowBufferPos;
+    canRollBack = false;
 }
 
 Lexer::Token Lexer::nextToken() {
-    char currentChar = nextChar();
+    int currentChar = nextChar();
     Token token;
     while (true) {
         // Check EOF.
@@ -216,20 +219,17 @@ Lexer::Token Lexer::nextToken() {
         }
         // Construct string token.
         if (currentChar == '"') {
-            char lastChar = '\0';
-            currentChar = nextChar();
+            bool escaped = false;
             token.type = STRING;
             while (true) {
-                // The end of string.
-                if (lastChar != '\\' && currentChar == '\"') {
-                    if (lastChar != '\0') token.value += lastChar;
-                    break;
-                } else {
-                    if (lastChar != '\0') token.value += lastChar;
-                    lastChar = currentChar;
-                    currentChar = nextChar();
-                    continue;
+                currentChar = nextChar();
+                if (currentChar == EOF || currentChar == '\0' ||
+                    currentChar == '\n' || currentChar == '\r') {
+                    error("unterminated string literal", currentChar);
                 }
+                if (currentChar == '"' && !escaped) break;
+                token.value += static_cast<char>(currentChar);
+                escaped = currentChar == '\\' && !escaped;
             }
             break;
         }
@@ -280,7 +280,7 @@ Lexer::Token Lexer::nextToken() {
             }
             break;
         }
-        error(&"unexpected character "[currentChar], currentChar);
+        error("unexpected character", currentChar);
     }
     token.rowNumber = rowNumber;
     return token;
@@ -327,21 +327,23 @@ string Lexer::tokenToString(const Lexer::Token &token) {
         case Lexer::END_OF_FILE:
             tokenType = "END_OF_FILE";
             break;
+        case Lexer::END_OF_LINE:
+            tokenType = "END_OF_LINE";
+            break;
         default:
-            error(&"unexpected token type: "[token.type], '\0');
+            error("unexpected token type: " + to_string(token.type), '\0');
     }
     return "<" + tokenType + ", " + tokenValue + ", " + to_string(token.rowNumber) + ">";
 }
 
 
-void Lexer::error(const std::string &message, char currentChar) {
-    if (currentChar != '\0') {
-        cerr << "[Lexer] [Error]: " << message << " when process character '" << currentChar << "' at row " << rowNumber
-             << " col " << rowBufferPos << "." << endl;
-    } else {
-        cerr << "[Lexer] [Error]: " << message << "." << endl;
-    }
-    if (debug) exit(-1);
+void Lexer::error(const std::string &message, int currentChar) {
+    ostringstream diagnostic;
+    diagnostic << "[Lexer] " << message << " at row " << rowNumber
+               << " col " << rowBufferPos;
+    if (currentChar != EOF && currentChar != '\0')
+        diagnostic << " (character code " << currentChar << ")";
+    throw runtime_error(diagnostic.str());
 }
 
 void Lexer::setDebugMode(bool enable) {
